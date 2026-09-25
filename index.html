@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nexwave — Project Intake Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EFF2; --surface:#FFFFFF; --surface-2:#F4F8FA; --ink:#16233A; --muted:#5A6B7E;
+  --line:#D3DDE3; --accent:#0F6E8C; --accent-ink:#FFFFFF; --tint:#D8EBF1; --warn:#9A5B00; --warn-bg:#FFF3DC;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1A26; --surface:#152433; --surface-2:#1B2D3F; --ink:#E4ECF2; --muted:#9AAEC0;
+    --line:#26394C; --accent:#4FB3CF; --accent-ink:#0B1722; --tint:#183A4A; --warn:#F2C26B; --warn-bg:#3A2C12;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1A26; --surface:#152433; --surface-2:#1B2D3F; --ink:#E4ECF2; --muted:#9AAEC0;
+  --line:#26394C; --accent:#4FB3CF; --accent-ink:#0B1722; --tint:#183A4A; --warn:#F2C26B; --warn-bg:#3A2C12;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;display:grid;grid-template-rows:auto 1fr;max-width:1240px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.01em}
+.brand svg{width:34px;height:34px}
+.brand small{display:block;font-weight:400;font-size:13px;color:var(--muted);letter-spacing:0}
+header .spacer{flex:1}
+.ghost{background:none;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+.ghost:hover{border-color:var(--accent)}
+.brief-toggle{display:none}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 400px;min-height:0}
+.chat{display:grid;grid-template-rows:1fr auto;min-height:0;border-right:1px solid var(--line)}
+.log{overflow-y:auto;padding:24px 20px 12px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:min(620px,88%);padding:11px 15px;border-radius:14px;white-space:pre-wrap}
+.bot{background:var(--surface);border:1px solid var(--line);border-top-left-radius:4px;align-self:flex-start}
+.user{background:var(--accent);color:var(--accent-ink);border-top-right-radius:4px;align-self:flex-end}
+.bot strong{font-weight:600}
+.step-tag{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.typing{display:inline-flex;gap:4px;padding:14px 16px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.3}30%{opacity:1}}
+
+.choices{display:flex;flex-wrap:wrap;gap:8px;align-self:flex-start;max-width:min(640px,100%)}
+.chip{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;text-align:left}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--tint);border-color:var(--accent);font-weight:500}
+.chip.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.chip:disabled{opacity:.45;cursor:default}
+
+.composer{display:flex;gap:8px;padding:12px 20px 16px;border-top:1px solid var(--line);background:var(--bg)}
+.composer textarea{flex:1;resize:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:44px;max-height:140px}
+.send{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:0 18px;font-weight:600;cursor:pointer}
+.send:disabled{opacity:.5}
+
+/* The brief: fills in as the client answers */
+.brief{overflow-y:auto;padding:22px 22px 30px;background:var(--surface)}
+.brief h2{margin:0 0 2px;font-size:20px;letter-spacing:-.01em}
+.brief .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+.progress{height:4px;background:var(--line);border-radius:4px;margin-bottom:20px;overflow:hidden}
+.progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .4s ease}
+.field{padding:12px 0;border-top:1px solid var(--line)}
+.field h3{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--muted)}
+.field p{margin:0}
+.field .empty{color:var(--muted);font-style:italic}
+.field.fresh{animation:flash 1.2s ease}
+@keyframes flash{0%{background:var(--tint)}100%{background:transparent}}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:13px}
+
+/* Proposal */
+.proposal{background:var(--surface);border:1px solid var(--line);border-radius:14px;align-self:stretch;max-width:760px;overflow:hidden}
+.proposal header{display:block;border:0;padding:20px 22px 14px;background:var(--tint)}
+.proposal header h2{margin:0;font-size:22px;letter-spacing:-.015em}
+.proposal header p{margin:4px 0 0;color:var(--muted)}
+.estimate{display:flex;align-items:baseline;gap:10px;margin-top:12px}
+.estimate b{font-size:34px;letter-spacing:-.02em;line-height:1}
+.pbody{padding:6px 22px 20px}
+.pbody section{padding:14px 0;border-bottom:1px solid var(--line)}
+.pbody section:last-of-type{border-bottom:0}
+.pbody h3{margin:0 0 8px;font-size:16px}
+.pbody ul{margin:0;padding-left:20px}.pbody li{margin:3px 0}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px}
+.timeline{display:grid;gap:8px}
+.phase{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:start}
+.phase .n{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:13px;font-weight:700}
+.phase .w{font-weight:600;white-space:nowrap}
+.phase small{display:block;color:var(--muted)}
+.bar{height:8px;border-radius:4px;background:var(--accent);opacity:.8;margin-top:6px}
+.note{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 20px}
+.disclaimer{color:var(--muted);font-size:13px;padding:0 22px 18px;margin:0}
+
+@media (max-width:880px){
+  .main{grid-template-columns:1fr}
+  .chat{border-right:0}
+  .brief-toggle{display:inline-block}
+  .brief{display:none;position:fixed;inset:0;z-index:5;padding-top:calc(60px + env(safe-area-inset-top,0px));padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))}
+  .brief.open{display:block}
+  .brief .close{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:16px}
+  .msg{max-width:92%}
+}
+@media (min-width:881px){.brief .close{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  header,.composer,.brief,.choices,.actions,.msg{display:none!important}
+  .main{display:block}.log{overflow:visible}.proposal{border:0}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="var(--accent)"/><path d="M7 24c4-8 7-8 11 0s7 8 11 0 4-4 4-4" fill="none" stroke="var(--accent-ink)" stroke-width="3" stroke-linecap="round"/></svg>
+      <div>Nexwave<small>Project intake assistant</small></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="ghost brief-toggle" id="openBrief">View brief</button>
+    <button class="ghost" id="restart">Start over</button>
+  </header>
+
+  <div class="main">
+    <div class="chat">
+      <div class="log" id="log" aria-live="polite"></div>
+      <form class="composer" id="composer" onsubmit="return false">
+        <textarea id="input" rows="1" placeholder="Type your answer, or pick an option above" aria-label="Your answer"></textarea>
+        <button class="send" id="send" type="button">Send</button>
+      </form>
+    </div>
+
+    <aside class="brief" id="brief" aria-label="Project brief">
+      <button class="ghost close" id="closeBrief">Close</button>
+      <h2>Project brief</h2>
+      <p class="sub">Fills in as you answer. Nexwave reviews this before your first call.</p>
+      <div class="progress"><span id="prog"></span></div>
+      <div id="fields"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+/* ---------- Question flow ---------- */
+const TYPES = {
+  "Web application":         {base:6, stack:"React + TypeScript front end, Node.js (NestJS) API, PostgreSQL"},
+  "Customer portal":         {base:7, stack:"React + TypeScript portal, Node.js API, PostgreSQL, customer self-service auth"},
+  "Internal tool / dashboard":{base:5, stack:"React admin UI, Node.js API, PostgreSQL, charting library"},
+  "Mobile app":              {base:9, stack:"React Native (iOS + Android), Node.js API, PostgreSQL"},
+  "Integration / automation":{base:4, stack:"Serverless functions (AWS Lambda or Azure Functions), message queue, small admin UI"}
+};
+const ROLES = ["Administrator","Internal staff","Manager / approver","Customer","Partner / vendor","Read-only viewer"];
+const SOT = {
+  "This new application": 0,
+  "An existing CRM or ERP": 1.5,
+  "Spreadsheets we'd migrate": 1,
+  "Several systems / not sure yet": 2
+};
+const SYSTEMS = ["Salesforce","HubSpot","QuickBooks","SAP / Oracle ERP","Microsoft 365 / SharePoint","Custom database","Other"];
+const FEATURES = {
+  "Login and role permissions":1, "Forms and data entry":1, "Dashboards and reports":1.5,
+  "Approval workflows":2, "Email / SMS notifications":.75, "File uploads":.75,
+  "Search and filters":.75, "Payments":2, "Data export (CSV / PDF)":.5, "AI assistant features":2
+};
+const SECURITY = {
+  "Standard best practices":0, "Single sign-on (SSO)":1, "Multi-factor login":.5, "Audit log of changes":1,
+  "HIPAA":3, "SOC 2 alignment":2, "GDPR / CCPA":1, "PCI (card data)":2
+};
+const RETENTION = {"No specific requirement":0,"1–3 years":.5,"7+ years":1,"Legal hold / custom policy":1.5};
+const TARGET = {"Within 2 months":8,"3–4 months":16,"6 months or more":26,"Flexible":null};
+
+const KEYWORDS = [
+  [/salesforce/i,"systems","Salesforce"],[/hubspot/i,"systems","HubSpot"],[/quickbooks|qbo/i,"systems","QuickBooks"],
+  [/\bsap\b|oracle|netsuite|erp/i,"systems","SAP / Oracle ERP"],[/sharepoint|office ?365|microsoft 365|m365/i,"systems","Microsoft 365 / SharePoint"],
+  [/hipaa|patient|phi\b/i,"security","HIPAA"],[/sso|okta|azure ad|entra/i,"security","Single sign-on (SSO)"],
+  [/mfa|2fa|two.factor/i,"security","Multi-factor login"],[/audit/i,"security","Audit log of changes"],
+  [/soc ?2/i,"security","SOC 2 alignment"],[/gdpr|ccpa/i,"security","GDPR / CCPA"],[/pci|credit card/i,"security","PCI (card data)"],
+  [/approv/i,"features","Approval workflows"],[/dashboard|report/i,"features","Dashboards and reports"],
+  [/upload|attachment|document/i,"features","File uploads"],[/payment|invoice|stripe/i,"features","Payments"],
+  [/notif|email alert|sms/i,"features","Email / SMS notifications"],[/export|csv|pdf/i,"features","Data export (CSV / PDF)"]
+];
+
+const steps = [
+  {id:"type", kind:"single", options:Object.keys(TYPES), field:"Project type",
+   ask:"Hi, I'm Nexwave's project intake assistant. I'll ask six short questions and then give you a first-pass design approach and timeline.\n\nFirst, what are you looking to build?"},
+  {id:"roles", kind:"multi", options:ROLES, field:"Users and roles", tag:"1 of 6 · Users",
+   ask:"Who will use the application? Pick every group that applies."},
+  {id:"roleNotes", kind:"text", optional:true, field:"What each role can do",
+   ask:"What should each role be able to do? For example: \"Staff create requests, managers approve them, customers only see their own records.\""},
+  {id:"sot", kind:"single", options:Object.keys(SOT), field:"Source of truth", tag:"2 of 6 · Data",
+   ask:"Which system remains the source of truth for your core data?"},
+  {id:"systems", kind:"multi", options:SYSTEMS, field:"Systems to integrate", when:a=>a.sot && a.sot!=="This new application",
+   ask:"Which systems will the application need to connect to?"},
+  {id:"features", kind:"multi", options:Object.keys(FEATURES), field:"Essential for first release", tag:"3 of 6 · First release",
+   ask:"What is essential in the first useful release? Choose only what users can't work without on day one — everything else goes to phase 2."},
+  {id:"featureNotes", kind:"text", optional:true, field:"Other must-haves",
+   ask:"Anything else that must be in the first release?"},
+  {id:"security", kind:"multi", options:Object.keys(SECURITY), field:"Security and compliance", tag:"4 of 6 · Security",
+   ask:"Are there security or compliance requirements?"},
+  {id:"retention", kind:"single", options:Object.keys(RETENTION), field:"Record retention",
+   ask:"How long must records be kept?"},
+  {id:"target", kind:"single", options:Object.keys(TARGET), field:"Target launch", tag:"5 of 6 · Timing",
+   ask:"When would you like the first release live?"},
+  {id:"contact", kind:"text", optional:true, field:"Contact", tag:"6 of 6 · Contact",
+   ask:"Last one: your name, company, and email, so the Nexwave team can follow up."}
+];
+
+/* ---------- State ---------- */
+let A, idx, selection, busy;
+const log = document.getElementById("log"), input = document.getElementById("input"), send = document.getElementById("send");
+const fieldsEl = document.getElementById("fields"), prog = document.getElementById("prog");
+
+function reset(){
+  A = {systems:[],features:[],security:[],roles:[]}; idx = -1; selection = new Set(); busy=false;
+  log.innerHTML=""; renderBrief(); next();
+}
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const scroll = () => requestAnimationFrame(()=>log.scrollTop = log.scrollHeight);
+
+function botSay(text, tag){
+  return new Promise(res=>{
+    const t = document.createElement("div"); t.className="msg bot typing"; t.innerHTML="<i></i><i></i><i></i>";
+    log.appendChild(t); scroll();
+    const delay = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : Math.min(900, 300 + text.length*4);
+    setTimeout(()=>{ t.className="msg bot"; t.innerHTML=(tag?`<span class="step-tag">${esc(tag)}</span>`:"")+esc(text); scroll(); res(); }, delay);
+  });
+}
+function userSay(text){ const d=document.createElement("div"); d.className="msg user"; d.textContent=text; log.appendChild(d); scroll(); }
+function clearChoices(){ log.querySelectorAll(".choices").forEach(c=>c.querySelectorAll("button").forEach(b=>b.disabled=true)); }
+
+async function next(){
+  idx++;
+  while(idx < steps.length && steps[idx].when && !steps[idx].when(A)) idx++;
+  if(idx >= steps.length){ return finish(); }
+  const s = steps[idx]; selection = new Set(A[s.id] && Array.isArray(A[s.id]) ? A[s.id] : []);
+  busy=true; await botSay(s.ask, s.tag); busy=false;
+  const box = document.createElement("div"); box.className="choices";
+  if(s.kind==="single"||s.kind==="multi"){
+    s.options.forEach(o=>{
+      const b=document.createElement("button"); b.className="chip"; b.type="button"; b.textContent=o;
+      if(s.kind==="multi"){ b.setAttribute("aria-pressed", selection.has(o)?"true":"false");
+        b.onclick=()=>{ selection.has(o)?selection.delete(o):selection.add(o); b.setAttribute("aria-pressed", selection.has(o)?"true":"false"); confirmBtn.disabled = selection.size===0 && !input.value.trim(); };
+      } else b.onclick=()=>answer(o);
+      box.appendChild(b);
+    });
+    var confirmBtn;
+    if(s.kind==="multi"){
+      confirmBtn=document.createElement("button"); confirmBtn.className="chip primary"; confirmBtn.type="button";
+      confirmBtn.textContent="Continue with selected"; confirmBtn.disabled = selection.size===0;
+      confirmBtn.onclick=()=>answer(null); box.appendChild(confirmBtn);
+    }
+  }
+  if(s.optional){
+    const k=document.createElement("button"); k.className="chip"; k.type="button"; k.textContent="Skip";
+    k.onclick=()=>answer("", true); box.appendChild(k);
+  }
+  if(box.children.length){ log.appendChild(box); scroll(); }
+  input.placeholder = s.kind==="text" ? "Type your answer" : "Pick above, or describe it in your own words";
+  input.focus({preventScroll:true});
+}
+
+function applyKeywords(text){
+  const hits=[];
+  KEYWORDS.forEach(([re,key,val])=>{ if(re.test(text) && !A[key].includes(val)){ A[key].push(val); hits.push(val);} });
+  return hits;
+}
+
+function answer(value, skipped){
+  if(busy || idx<0 || idx>=steps.length) return;
+  const s = steps[idx], typed = input.value.trim();
+  if(!value && !skipped && !typed && !(s.kind==="multi" && selection.size)) return;
+  clearChoices(); input.value=""; autosize();
+  let shown;
+  if(s.kind==="multi"){
+    A[s.id] = Array.from(selection);
+    const extra = value && typeof value==="string" ? value : typed;
+    if(extra){ A[s.id+"Other"] = extra; applyKeywords(extra); }
+    shown = [...A[s.id], extra].filter(Boolean).join(", ") || "None";
+  } else if(s.kind==="single"){
+    const v = value || typed;
+    const match = s.options.find(o=>o.toLowerCase()===v.toLowerCase());
+    A[s.id] = match || v; if(!match) applyKeywords(v);
+    shown = v;
+  } else {
+    A[s.id] = skipped ? "" : (value||typed); if(A[s.id]) applyKeywords(A[s.id]);
+    shown = skipped ? "Skip" : A[s.id];
+  }
+  userSay(shown); renderBrief(s.id); next();
+}
+
+/* ---------- Brief panel ---------- */
+function briefValue(id){
+  const v=A[id], o=A[id+"Other"];
+  if(Array.isArray(v)){ const all=[...v, ...(o?[o]:[])]; return all.length ? `<div class="tags">${all.map(x=>`<span class="tag">${esc(x)}</span>`).join("")}</div>` : null; }
+  return v ? `<p>${esc(v)}</p>` : null;
+}
+function renderBrief(fresh){
+  const visible = steps.filter(s=>!s.when || s.when(A));
+  fieldsEl.innerHTML = visible.map(s=>{
+    const v = briefValue(s.id);
+    return `<div class="field${fresh===s.id?" fresh":""}"><h3>${esc(s.field)}</h3>${v || '<p class="empty">Not answered yet</p>'}</div>`;
+  }).join("");
+  const done = visible.filter(s=>A[s.id]!==undefined).length;
+  prog.style.width = (100*done/visible.length)+"%";
+}
+
+/* ---------- Estimate ---------- */
+function estimate(){
+  const t = TYPES[A.type] || {base:6, stack:TYPES["Web application"].stack};
+  const lines=[];
+  let build = t.base; lines.push([`${A.type||"Custom application"} baseline`, t.base]);
+  const nRoles = A.roles.length + (A.rolesOther?1:0);
+  if(nRoles>2){ const r=(nRoles-2)*.75; build+=r; lines.push([`${nRoles} user roles and permissions`, r]); }
+  const sotW = SOT[A.sot] ?? 1; if(sotW){ build+=sotW; lines.push(["Data ownership and sync design", sotW]); }
+  const sys = A.systems.filter(x=>x!=="Other").length + ((A.systems.includes("Other")||A.systemsOther)?1:0);
+  if(sys){ const w=sys*1.5; build+=w; lines.push([`${sys} system integration${sys>1?"s":""}`, w]); }
+  let f=0; A.features.forEach(x=>f+=FEATURES[x]||0); if(A.featuresOther||A.featureNotes) f+=1;
+  if(f){ build+=f; lines.push(["First-release features", f]); }
+  let sec=0; A.security.forEach(x=>sec+=SECURITY[x]||0); if(A.securityOther) sec+=.5;
+  const ret = RETENTION[A.retention] ?? .5; sec+=ret;
+  if(sec){ build+=sec; lines.push(["Security, compliance, retention", sec]); }
+
+  const discovery = 1.5 + (A.sot==="Several systems / not sure yet"||sys>2 ? 1 : 0) + (A.security.includes("HIPAA")||A.security.includes("SOC 2 alignment") ? .5:0);
+  const design = 1 + (nRoles>3?.5:0);
+  const qa = Math.max(1, build*.2);
+  const launch = 1;
+  const total = discovery + design + build + qa + launch;
+  const low = Math.max(4, Math.round(total*.85)), high = Math.round(total*1.2);
+  const phases = [
+    ["Discovery and requirements", discovery, "Workshops with each role, data mapping, confirm source of truth"],
+    ["UX and technical design", design, "Clickable prototype, architecture and data model sign-off"],
+    ["Build first release", build, "Two-week sprints with a demo at the end of each"],
+    ["Testing and user acceptance", qa, "QA, security checks, your team tests real scenarios"],
+    ["Launch and handover", launch, "Deployment, training, documentation, hypercare"]
+  ];
+  return {t, lines, phases, total, low, high, nRoles, sys};
+}
+
+function round1(n){ return Math.round(n*2)/2; }
+
+function proposalHTML(){
+  const e = estimate(); const max = Math.max(...e.phases.map(p=>p[1]));
+  const sso = A.security.includes("Single sign-on (SSO)"), audit = A.security.includes("Audit log of changes") || A.retention!=="No specific requirement";
+  const later = Object.keys(FEATURES).filter(x=>!A.features.includes(x)).slice(0,5);
+  const target = TARGET[A.target];
+  const arch = [
+    `<li><b>Application:</b> ${esc(e.t.stack)}.</li>`,
+    `<li><b>Hosting:</b> ${A.security.includes("HIPAA")?"HIPAA-eligible cloud (AWS or Azure) under a signed BAA":"Managed cloud hosting (AWS or Azure)"}, separate staging and production environments.</li>`,
+    `<li><b>Access control:</b> role-based permissions for ${e.nRoles||"each"} role${e.nRoles===1?"":"s"}${sso?", sign-in through your identity provider (Okta or Microsoft Entra ID) via OIDC/SAML":", email and password with optional multi-factor login"}.</li>`,
+    A.sot && A.sot!=="This new application"
+      ? `<li><b>Data:</b> ${esc(A.sot)} stays the source of truth. The app reads from it and writes changes back through its API${A.systems.length?` (${esc(A.systems.join(", "))})`:""}, with a sync log and retry queue so nothing is lost.</li>`
+      : `<li><b>Data:</b> this application is the source of truth, with a PostgreSQL database, nightly backups, and point-in-time restore.</li>`,
+    audit ? `<li><b>Records:</b> append-only audit table for every change (who, what, when)${A.retention&&A.retention!=="No specific requirement"?`, scheduled archiving to meet the ${esc(A.retention.toLowerCase())} retention requirement`:""}.</li>`:"",
+    `<li><b>Security baseline:</b> encryption in transit and at rest, least-privilege access, dependency scanning, and a pre-launch security review.</li>`
+  ].join("");
+  const roleRows = (A.roles.length ? A.roles : ["Administrator","Internal staff"]).map(r=>{
+    const def = {"Administrator":"Manage users, roles, and settings; full access",
+      "Internal staff":"Create and update records they own; view team data",
+      "Manager / approver":"Review, approve, or reject submissions; view team reports",
+      "Customer":"Submit requests and see only their own records",
+      "Partner / vendor":"Access shared records assigned to them",
+      "Read-only viewer":"View dashboards and records; no edits"}[r] || "To confirm in discovery";
+    return `<tr><td>${esc(r)}</td><td>${esc(def)}</td></tr>`;
+  }).join("");
+  let fit = "";
+  if(target && e.low > target) fit = `<div class="note">Your target (${esc(A.target.toLowerCase())}) is shorter than the estimate. Options: trim the first release to the top two or three features, or run design and integration work in parallel with a larger team.</div>`;
+  else if(target) fit = `<p>This fits your target of ${esc(A.target.toLowerCase())}.</p>`;
+
+  return `
+  <header>
+    <h2>Preliminary design approach</h2>
+    <p>${esc(A.type||"Custom application")} for ${e.nRoles||"your"} user role${e.nRoles===1?"":"s"}</p>
+    <div class="estimate"><b>${e.low}–${e.high} weeks</b><span>to first release</span></div>
+  </header>
+  <div class="pbody">
+    <section><h3>Recommended architecture</h3><ul>${arch}</ul></section>
+    <section><h3>Roles and access</h3>
+      <div class="table-wrap"><table><thead><tr><th>Role</th><th>Starting permissions</th></tr></thead><tbody>${roleRows}</tbody></table></div>
+      ${A.roleNotes?`<p style="margin-top:8px">Your notes: ${esc(A.roleNotes)}</p>`:""}
+    </section>
+    <section><h3>First release scope</h3>
+      <ul>${[...A.features, ...(A.featuresOther?[A.featuresOther]:[]), ...(A.featureNotes?[A.featureNotes]:[])].map(x=>`<li>${esc(x)}</li>`).join("")||"<li>To define in discovery</li>"}</ul>
+      ${later.length?`<p style="margin:8px 0 0;color:var(--muted)">Candidates for phase 2: ${esc(later.join(", "))}.</p>`:""}
+    </section>
+    <section><h3>Timeline</h3>
+      <div class="timeline">${e.phases.map((p,i)=>`
+        <div class="phase"><span class="n">${i+1}</span><div>${esc(p[0])}<small>${esc(p[2])}</small><div class="bar" style="width:${Math.max(6,100*p[1]/max)}%"></div></div><span class="w">${round1(p[1])} wk</span></div>`).join("")}
+      </div>
+      ${fit}
+    </section>
+    <section><h3>What drives the estimate</h3>
+      <div class="table-wrap"><table><tbody>${e.lines.map(l=>`<tr><td>${esc(l[0])}</td><td style="text-align:right">+${round1(l[1])} wk</td></tr>`).join("")}</tbody></table></div>
+    </section>
+    <section><h3>Suggested team</h3>
+      <p>${e.total>14?"Project manager, UX designer (part-time), three developers, QA engineer":"Project manager (part-time), UX designer (part-time), two developers, QA support"}.</p>
+    </section>
+  </div>
+  <div class="actions">
+    <button class="chip primary" type="button" data-act="copy">Copy brief</button>
+    <button class="chip" type="button" data-act="print">Print or save as PDF</button>
+    <button class="chip" type="button" data-act="restart">Start a new brief</button>
+  </div>
+  <p class="disclaimer">This is an automated first estimate. A Nexwave consultant will confirm scope, timeline, and cost after a discovery call.</p>`;
+}
+
+function plainBrief(){
+  const e=estimate();
+  const out=["NEXWAVE PROJECT BRIEF",""];
+  steps.filter(s=>!s.when||s.when(A)).forEach(s=>{
+    const v=A[s.id], o=A[s.id+"Other"];
+    const val = Array.isArray(v)?[...v,...(o?[o]:[])].join(", "):v;
+    out.push(`${s.field}: ${val||"—"}`);
+  });
+  out.push("",`Estimated first release: ${e.low}–${e.high} weeks`,"");
+  e.phases.forEach((p,i)=>out.push(`${i+1}. ${p[0]} — ${round1(p[1])} wk`));
+  return out.join("\n");
+}
+
+async function finish(){
+  input.placeholder="Brief complete"; 
+  busy=true; await botSay("Thanks. Here's a first-pass design approach and timeline based on your answers."); busy=false;
+  const card=document.createElement("div"); card.className="proposal"; card.innerHTML=proposalHTML();
+  card.addEventListener("click",ev=>{
+    const act = ev.target.closest("[data-act]")?.dataset.act; if(!act) return;
+    if(act==="print") window.print();
+    if(act==="restart") reset();
+    if(act==="copy") copyText(plainBrief(), ev.target.closest("button"));
+  });
+  log.appendChild(card); scroll(); idx = steps.length;
+}
+
+function copyText(text, btn){
+  const done=()=>{ btn.textContent="Copied"; setTimeout(()=>btn.textContent="Copy brief",1600); };
+  const fallback=()=>{ const t=document.createElement("textarea"); t.value=text; t.style.position="fixed"; t.style.opacity="0"; document.body.appendChild(t); t.select();
+    try{ document.execCommand("copy"); done(); }catch(e){ btn.textContent="Select and copy manually"; } t.remove(); };
+  try{ navigator.clipboard ? navigator.clipboard.writeText(text).then(done, fallback) : fallback(); }catch(e){ fallback(); }
+}
+
+/* ---------- Composer ---------- */
+function autosize(){ input.style.height="auto"; input.style.height=Math.min(140,input.scrollHeight)+"px"; }
+input.addEventListener("input",()=>{ autosize(); const c=log.querySelector(".choices:last-child .chip.primary"); if(c && steps[idx]?.kind==="multi") c.disabled = selection.size===0 && !input.value.trim(); });
+input.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); if(input.value.trim()) answer(null); }});
+send.onclick=()=>{ if(input.value.trim()) answer(null); };
+document.getElementById("restart").onclick=reset;
+const brief=document.getElementById("brief");
+document.getElementById("openBrief").onclick=()=>brief.classList.add("open");
+document.getElementById("closeBrief").onclick=()=>brief.classList.remove("open");
+
+reset();
+})();
+</script>
+</body>
+</html>
