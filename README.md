@@ -89,14 +89,12 @@ nexwavellc-intake-chatbot/
 
 Inside `index.html` the script is organized into sections: question flow configuration, state, brief panel rendering, estimate calculation, proposal rendering, and input handling. Questions are defined in the `steps` array.
 
-## Limitations and future work
+## Development Log
 
-Completed briefs currently stay in the client's browser; connecting a form endpoint or the company CRM would deliver them straight to the sales inbox. The estimate weights are starting assumptions and would become more accurate once calibrated against Nexwave's historical projects. Other natural extensions are cost ranges alongside the timeline, multi-language support, and an optional server-side language model to turn free-text answers into a narrative summary.
+A week-by-week record of the project's development from July to September 2026, covering requirements analysis, conversation design, estimation logic, implementation, testing, and deployment.
 
-## Disclaimer
-
-Estimates produced by this tool are automated first-pass figures. A Nexwave consultant confirms scope, timeline, and cost after a discovery call.
+[View the full development log →](development-log.md)
 
 ## Author
 
-Jingni Wu, internship project at Nexwave LLC, 2026.
+Jingni Wu, summer project at Nexwave LLC, 2026.
